@@ -114,7 +114,9 @@ export function mapPointerNormalized(
     if (hwnd != null && getWindowRectFn) {
       const rect = getWindowRectFn(hwnd)
       // Use physical cursor coords to match GetWindowRect (avoids DIP vs pixel mismatch)
-      const cursor = getCursorPhysical ? getCursorPhysical() : snapshot
+      const cursor = getCursorPhysical
+        ? getCursorPhysical()
+        : { x: snapshot.screenX, y: snapshot.screenY }
       if (rect) {
         const w = rect.right - rect.left
         const h = rect.bottom - rect.top
