@@ -9,14 +9,13 @@ Floating control bar, rounded camera bubble, screen or window capture with mic, 
 - Always-on-top control pill with camera, mic, and screen/window menus
 - Rounded, borderless camera bubble (draggable; sizes S / M / L)
 - Presentation recording: selected screen or window + camera composited into a rounded corner PiP
+- Hold **Left Alt** while recording to smoothly zoom toward the cursor (up to 200%); release to ease back
 - Microphone with live input meter
 - Screenshots of the selected source
 - Recordings as H.264 MP4
 - Settings (cog): choose folders for videos and screenshots
-- Hold **Left Alt** while recording to smoothly zoom toward the cursor (up to 200%); release to ease back
-- Click while recording briefly enlarges the cursor highlight in the video
-- While recording, overlays hide so they do not appear as black boxes — **click the York tray icon** (or **Ctrl+Shift+Y**) to stop
-- Control UI uses content protection as an extra capture safeguard
+- While recording, overlays hide so they do not appear as black boxes — **click the York tray icon** to stop
+- Control UI uses content protection when visible
 
 ## Requirements
 
@@ -31,7 +30,7 @@ npm install
 npm run dev
 ```
 
-Use the tray icon to show/hide the control bar or quit. During a recording, click the tray icon (or press **Ctrl+Shift+Y**) to stop.
+Use the tray icon to show/hide the control bar or quit.
 
 ## Build
 
