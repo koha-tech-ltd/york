@@ -15,7 +15,8 @@ Floating control bar, rounded camera bubble, screen or window capture with mic, 
 - Settings (cog): choose folders for videos and screenshots
 - Hold **Left Alt** while recording to smoothly zoom toward the cursor (up to 200%); release to ease back
 - Click while recording briefly enlarges the cursor highlight in the video
-- Control UI uses content protection so the bar and bubble stay out of the capture
+- While recording, overlays hide so they do not appear as black boxes — **click the York tray icon** (or **Ctrl+Shift+Y**) to stop
+- Control UI uses content protection as an extra capture safeguard
 
 ## Requirements
 
@@ -30,7 +31,7 @@ npm install
 npm run dev
 ```
 
-Use the tray icon to show/hide the control bar or quit.
+Use the tray icon to show/hide the control bar or quit. During a recording, click the tray icon (or press **Ctrl+Shift+Y**) to stop.
 
 ## Build
 

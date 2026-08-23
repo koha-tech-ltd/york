@@ -208,6 +208,7 @@ export function BarApp(): JSX.Element {
         pip: { x: 0.78, y: 0.72 },
         displayId: source?.displayId
       })
+      showToast('Recording… click the York tray icon to stop')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Recording failed')
     } finally {

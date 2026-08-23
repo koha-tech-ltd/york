@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   desktopCapturer,
   dialog,
+  globalShortcut,
   ipcMain,
   Menu,
   nativeImage,
@@ -172,8 +173,96 @@ function loadRenderer(win: BrowserWindow, name: 'bar' | 'bubble' | 'compositor')
 }
 
 function protectWindow(win: BrowserWindow): void {
+  // Prefer true exclusion from capture. On some Windows/Chromium paths,
+  // content protection still paints windows as black rectangles in the
+  // desktop capture stream — we also hide overlays while recording.
   win.setContentProtection(true)
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+}
+
+/** Hide York UI so it does not appear as black boxes in the recording. */
+function hideOverlaysForCapture(): void {
+  if (barWindow && !barWindow.isDestroyed()) barWindow.hide()
+  if (bubbleWindow && !bubbleWindow.isDestroyed()) bubbleWindow.hide()
+}
+
+function restoreOverlaysAfterCapture(): void {
+  if (barWindow && !barWindow.isDestroyed()) {
+    barWindow.show()
+  }
+  updateBubbleVisibility()
+  refreshTrayMenu()
+}
+
+function refreshTrayMenu(): void {
+  if (!tray) return
+  const items: Electron.MenuItemConstructorOptions[] = []
+
+  if (recording) {
+    items.push({
+      label: 'Stop recording',
+      click: () => {
+        void requestStopRecording()
+      }
+    })
+    items.push({ type: 'separator' })
+  }
+
+  items.push(
+    {
+      label: 'Show controls',
+      enabled: !recording,
+      click: () => {
+        if (barWindow && !barWindow.isDestroyed()) {
+          barWindow.show()
+          barWindow.focus()
+        }
+      }
+    },
+    {
+      label: 'Hide controls',
+      enabled: !recording,
+      click: () => barWindow?.hide()
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit York',
+      click: () => app.quit()
+    }
+  )
+
+  tray.setContextMenu(Menu.buildFromTemplate(items))
+  tray.setToolTip(recording ? `York — recording ${formatTrayElapsed(elapsedMs)}` : 'York')
+}
+
+function formatTrayElapsed(ms: number): string {
+  const total = Math.floor(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+async function requestStopRecording(): Promise<RecordResult | null> {
+  if (finishInProgress) return null
+  if (!recording || !compositorWindow || compositorWindow.isDestroyed()) return null
+
+  const stopPromise = new Promise<RecordResult>((resolve, reject) => {
+    recordResolve = resolve
+    recordReject = reject
+    compositorWindow!.webContents.send(IPC.compositorStop)
+  })
+
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Stop timed out — try again')), 45000)
+  })
+
+  try {
+    return await Promise.race([stopPromise, timeout])
+  } catch (err) {
+    cleanupRecording(false)
+    restoreOverlaysAfterCapture()
+    throw err
+  }
 }
 
 function createBarWindow(): BrowserWindow {
@@ -322,28 +411,12 @@ function createTrayIcon(): Electron.NativeImage {
 function createTray(): void {
   tray = new Tray(createTrayIcon())
   tray.setToolTip('York')
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'Show controls',
-      click: () => {
-        if (barWindow && !barWindow.isDestroyed()) {
-          barWindow.show()
-          barWindow.focus()
-        }
-      }
-    },
-    {
-      label: 'Hide controls',
-      click: () => barWindow?.hide()
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit York',
-      click: () => app.quit()
-    }
-  ])
-  tray.setContextMenu(menu)
+  refreshTrayMenu()
   tray.on('click', () => {
+    if (recording) {
+      void requestStopRecording()
+      return
+    }
     if (!barWindow || barWindow.isDestroyed()) return
     if (barWindow.isVisible()) barWindow.hide()
     else {
@@ -368,7 +441,8 @@ function applyBubbleSize(size: BubbleSize): void {
 
 function updateBubbleVisibility(): void {
   if (!bubbleWindow || bubbleWindow.isDestroyed()) return
-  if (cameraEnabled) {
+  // Never show the live bubble while recording — it becomes a black square in capture
+  if (cameraEnabled && !recording && !saving) {
     bubbleWindow.show()
   } else {
     bubbleWindow.hide()
@@ -540,6 +614,7 @@ function registerIpc(): void {
       recordReject = null
     }
     cleanupRecording(false)
+    restoreOverlaysAfterCapture()
   })
 
   ipcMain.handle(IPC.startRecord, async (_e, options: RecordOptions): Promise<{ started: true }> => {
@@ -584,10 +659,19 @@ function registerIpc(): void {
     recordStartedAt = Date.now()
     elapsedMs = 0
     broadcastState()
+    refreshTrayMenu()
+
+    // Hide overlays BEFORE capture starts — transparent Electron windows
+    // show up as solid black rectangles in desktopCapturer.
+    hideOverlaysForCapture()
+    await new Promise<void>((resolve) => setTimeout(resolve, 250))
 
     elapsedTimer = setInterval(() => {
       elapsedMs = Date.now() - recordStartedAt
       broadcastState()
+      if (tray) {
+        tray.setToolTip(`York — recording ${formatTrayElapsed(elapsedMs)}`)
+      }
     }, 250)
 
     startPointerLoop()
@@ -596,33 +680,7 @@ function registerIpc(): void {
   })
 
   ipcMain.handle(IPC.stopRecord, async (): Promise<RecordResult | null> => {
-    if (finishInProgress) {
-      return null
-    }
-    if (!recording && !saving) {
-      return null
-    }
-    if (!compositorWindow || compositorWindow.isDestroyed()) {
-      cleanupRecording(false)
-      return null
-    }
-
-    const stopPromise = new Promise<RecordResult>((resolve, reject) => {
-      recordResolve = resolve
-      recordReject = reject
-      compositorWindow!.webContents.send(IPC.compositorStop)
-    })
-
-    const timeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Stop timed out — try again')), 45000)
-    })
-
-    try {
-      return await Promise.race([stopPromise, timeout])
-    } catch (err) {
-      cleanupRecording(false)
-      throw err
-    }
+    return requestStopRecording()
   })
 
   ipcMain.handle(IPC.takeScreenshot, async (): Promise<ScreenshotResult> => {
@@ -664,8 +722,8 @@ async function finishRecording(): Promise<void> {
   saving = true
   elapsedMs = duration
   broadcastState()
+  refreshTrayMenu()
 
-  // Let any in-flight chunk writes land
   await new Promise<void>((resolve) => setTimeout(resolve, 150))
 
   await new Promise<void>((resolve) => {
@@ -684,6 +742,7 @@ async function finishRecording(): Promise<void> {
     saving = false
     finishInProgress = false
     cleanupRecording(false)
+    restoreOverlaysAfterCapture()
     const msg = 'Recording was too short or incomplete — hold for a couple of seconds before stopping'
     error = msg
     broadcastState()
@@ -705,6 +764,7 @@ async function finishRecording(): Promise<void> {
     error = null
     saving = false
     finishInProgress = false
+    restoreOverlaysAfterCapture()
     broadcastState()
     recordResolve?.({ path: outPath, durationMs: duration })
   } catch (err) {
@@ -712,6 +772,7 @@ async function finishRecording(): Promise<void> {
     error = msg
     saving = false
     finishInProgress = false
+    restoreOverlaysAfterCapture()
     broadcastState()
     recordReject?.(new Error(msg))
   }
@@ -741,6 +802,7 @@ function cleanupRecording(keepFile: boolean): void {
   recording = false
   saving = false
   finishInProgress = false
+  restoreOverlaysAfterCapture()
   broadcastState()
 }
 
@@ -787,6 +849,10 @@ app.whenReady().then(async () => {
   compositorWindow = createCompositorWindow()
   createTray()
 
+  globalShortcut.register('CommandOrControl+Shift+Y', () => {
+    if (recording) void requestStopRecording()
+  })
+
   // Default source: primary screen
   const sources = await listSources()
   const primary = sources.find((s) => s.type === 'screen') ?? sources[0]
@@ -798,6 +864,7 @@ app.whenReady().then(async () => {
   broadcastState()
 
   app.on('activate', () => {
+    if (recording || saving) return
     if (barWindow && !barWindow.isDestroyed()) {
       barWindow.show()
     }
@@ -806,6 +873,10 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   // Keep running via tray on all platforms for Loom-like UX
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('before-quit', () => {
