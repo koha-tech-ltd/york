@@ -23,9 +23,7 @@ export function CompositorApp(): JSX.Element {
     nx: 0.5,
     ny: 0.5,
     zoom: 1,
-    zoomTarget: 1,
-    cursorScale: 1,
-    clickBoost: 0
+    zoomTarget: 1
   })
 
   useEffect(() => {
@@ -43,13 +41,9 @@ export function CompositorApp(): JSX.Element {
 
     const unsubPointer = window.york.onPointerState((state: PointerFrameState) => {
       const p = pointerRef.current
-      // state.x/y are normalized 0–1; converted to pixels each frame using canvas size
       p.nx = state.x
       p.ny = state.y
       p.zoomTarget = state.zoomTarget
-      if (state.click) {
-        p.clickBoost = 1
-      }
     })
 
     const unsubStart = window.york.onCompositorStart((options) => {
@@ -80,9 +74,7 @@ export function CompositorApp(): JSX.Element {
         nx: 0.5,
         ny: 0.5,
         zoom: 1,
-        zoomTarget: 1,
-        cursorScale: 1,
-        clickBoost: 0
+        zoomTarget: 1
       }
 
       let screenStream: MediaStream
@@ -174,11 +166,6 @@ export function CompositorApp(): JSX.Element {
         p.zoom += (p.zoomTarget - p.zoom) * 0.12
         if (Math.abs(p.zoom - p.zoomTarget) < 0.0015) p.zoom = p.zoomTarget
 
-        // Click briefly enlarges the cursor ring
-        const clickTarget = p.clickBoost > 0.04 ? 1.65 : 1
-        p.cursorScale += (clickTarget - p.cursorScale) * 0.32
-        p.clickBoost *= 0.84
-
         const z = Math.max(1, Math.min(2, p.zoom))
         const srcW = width / z
         const srcH = height / z
@@ -188,11 +175,8 @@ export function CompositorApp(): JSX.Element {
         ctx.clearRect(0, 0, width, height)
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'high'
+        // System cursor is already in the captured frame — do not draw a second cursor
         ctx.drawImage(screenVideo, sx, sy, srcW, srcH, 0, 0, width, height)
-
-        const outX = ((focusX - sx) / srcW) * width
-        const outY = ((focusY - sy) / srcH) * height
-        drawCursor(ctx, outX, outY, p.cursorScale, z > 1.02)
 
         if (cameraStream && cameraVideoRef.current) {
           drawCameraPip(ctx, cameraVideoRef.current, pipX, pipY, pipDiameter)
@@ -294,47 +278,6 @@ function drawCameraPip(
   ctx.scale(-1, 1)
   ctx.translate(-cx, -cy)
   ctx.drawImage(cam, ox, oy, tw, th)
-  ctx.restore()
-}
-
-function drawCursor(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  scale: number,
-  zooming: boolean
-): void {
-  const base = 10 * scale
-  ctx.save()
-  ctx.translate(x, y)
-
-  // Soft spotlight while zooming
-  if (zooming) {
-    const g = ctx.createRadialGradient(0, 0, 8, 0, 0, 90 * scale)
-    g.addColorStop(0, 'rgba(255,255,255,0.10)')
-    g.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = g
-    ctx.beginPath()
-    ctx.arc(0, 0, 90 * scale, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  ctx.beginPath()
-  ctx.arc(0, 0, base + 4, 0, Math.PI * 2)
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'
-  ctx.lineWidth = 3
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.arc(0, 0, base + 4, 0, Math.PI * 2)
-  ctx.strokeStyle = 'rgba(255,255,255,0.95)'
-  ctx.lineWidth = 2
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.arc(0, 0, 2.5 * scale, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(232,64,64,0.95)'
-  ctx.fill()
   ctx.restore()
 }
 

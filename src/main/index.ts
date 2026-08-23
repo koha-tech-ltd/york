@@ -61,6 +61,7 @@ let lastLeftButton = false
 let finishInProgress = false
 let activeRecordMeta: {
   sourceType: 'screen' | 'window'
+  sourceId?: string
   displayId?: number
 } | null = null
 
@@ -86,11 +87,11 @@ function startPointerLoop(): void {
       return
     }
     const snap = readPointerSnapshot()
-    const mapped = mapPointerNormalized(
-      snap,
-      activeRecordMeta.sourceType,
-      activeRecordMeta.displayId
-    )
+    const mapped = mapPointerNormalized(snap, {
+      sourceType: activeRecordMeta.sourceType,
+      sourceId: activeRecordMeta.sourceId,
+      displayId: activeRecordMeta.displayId
+    })
     const click = snap.leftButton && !lastLeftButton
     lastLeftButton = snap.leftButton
     compositorWindow.webContents.send(IPC.pointerState, {
@@ -652,6 +653,7 @@ function registerIpc(): void {
         : screen.getPrimaryDisplay()
     activeRecordMeta = {
       sourceType: options.sourceType,
+      sourceId: options.sourceId,
       displayId: options.displayId ?? display?.id
     }
 
