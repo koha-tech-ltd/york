@@ -1,15 +1,19 @@
 # York
 
-Open-source screen recorder for **Windows** and **macOS**.
+Open-source Loom-like screen recorder for **Windows** and **macOS**.
 
 Floating control bar, rounded camera bubble, screen or window capture with mic, screenshots, and local MP4 / PNG save.
+
+## Preview
+
+![York recording preview — hold Left Alt to zoom toward the mouse](assets/preview.gif)
 
 ## Features (v1)
 
 - Always-on-top control pill with camera, mic, and screen/window menus
 - Rounded, borderless camera bubble (draggable; sizes S / M / L)
 - Presentation recording: selected screen or window + camera composited into a rounded corner PiP
-- Hold **Left Alt** while recording to smoothly zoom toward the cursor (up to 200%); release to ease back
+- **Alt zoom:** hold **Left Alt** while recording to smoothly zoom toward the mouse cursor (up to **200%**); release Alt to ease back to normal
 - Microphone with live input meter
 - Screenshots of the selected source
 - Recordings as H.264 MP4
@@ -30,7 +34,9 @@ npm install
 npm run dev
 ```
 
-Use the tray icon to show/hide the control bar or quit.
+Use the tray icon to show/hide the control bar or quit. During a recording, click the tray icon to stop.
+
+**Tip:** Hold **Left Alt** to zoom on the cursor while you present.
 
 ## Build
 
