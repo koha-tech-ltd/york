@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Temp recordings
+*.webm
+tmp/
+temp/

@@ -1,0 +1,87 @@
+{
+  "name": "york",
+  "version": "0.1.0",
+  "description": "Open source Loom-like screen recorder for macOS and Windows",
+  "main": "./out/main/index.js",
+  "author": "Koha Tech Ltd",
+  "license": "MIT",
+  "homepage": "https://github.com/koha-tech-ltd/york",
+  "scripts": {
+    "dev": "electron-vite dev -- --remote-debugging-port=9223",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "koffi": "^3.1.6"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "ltd.koha.york",
+    "productName": "York",
+    "icon": "build/icon.png",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/@ffmpeg-installer/**",
+      "**/node_modules/koffi/**",
+      "**/node_modules/@koromix/koffi-*/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/tray.png",
+        "to": "tray.png"
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": [
+        "dmg"
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "York needs camera access to show your face in recordings.",
+        "NSMicrophoneUsageDescription": "York needs microphone access to record your voice.",
+        "NSDesktopCaptureUsageDescription": "York needs screen recording permission to capture your screen or windows."
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

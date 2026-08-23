@@ -1,0 +1,56 @@
+# York
+
+Open-source screen recorder for **Windows** and **macOS**.
+
+Floating control bar, rounded camera bubble, screen or window capture with mic, screenshots, and local MP4 / PNG save.
+
+## Features (v1)
+
+- Always-on-top control pill with camera, mic, and screen/window menus
+- Rounded, borderless camera bubble (draggable; sizes S / M / L)
+- Presentation recording: selected screen or window + camera composited into a rounded corner PiP
+- Microphone with live input meter
+- Screenshots of the selected source
+- Recordings as H.264 MP4
+- Settings (cog): choose folders for videos and screenshots
+- Hold **Left Alt** while recording to smoothly zoom toward the cursor (up to 200%); release to ease back
+- Click while recording briefly enlarges the cursor highlight in the video
+- Control UI uses content protection so the bar and bubble stay out of the capture
+
+## Requirements
+
+- Node.js 20+
+- Windows 10/11 or macOS 12+
+- On macOS: grant **Camera**, **Microphone**, and **Screen Recording** in System Settings → Privacy & Security
+
+## Develop
+
+```bash
+npm install
+npm run dev
+```
+
+Use the tray icon to show/hide the control bar or quit.
+
+## Build
+
+```bash
+# Current platform
+npm run dist
+
+# Explicit targets
+npm run dist:win
+npm run dist:mac
+```
+
+Installers land in `dist/` (Windows: `York Setup x.y.z.exe`, macOS: DMG).
+
+On some Windows machines, electron-builder’s code-sign helper needs Developer Mode (symlink privilege). This project sets `signAndEditExecutable: false` so local unsigned builds still succeed.
+
+### macOS notarization
+
+v1 ships with camera/mic entitlements and usage strings. Notarization is not automated — sign and notarize with your Apple Developer account before distributing outside Gatekeeper.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
