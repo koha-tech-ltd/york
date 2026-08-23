@@ -4,16 +4,30 @@ Open-source Loom-like screen recorder for **Windows** and **macOS**.
 
 Floating control bar, rounded camera bubble, screen or window capture with mic, screenshots, and local MP4 / PNG save.
 
-## Preview
+## Download
 
-![York recording preview — hold Left Alt to zoom toward the mouse](assets/preview.gif)
+**[Download for Windows](https://github.com/koha-tech-ltd/york/releases/latest/download/York-Setup-0.1.0.exe)** — York Setup 0.1.0 for Windows 10/11.
+
+The installer is unsigned, so SmartScreen may warn on first run. Click **More info**, then **Run anyway**.
+
+macOS: no DMG yet — [build from source](#build), or see [Releases](https://github.com/koha-tech-ltd/york/releases).
+
+## Feature video
+
+<video src="assets/preview.mp4" width="720" controls muted loop playsinline>
+  <a href="assets/preview.mp4">Watch the feature video (MP4)</a>
+</video>
+
+![York feature preview — hold Left Alt to zoom toward the mouse](assets/preview.gif)
+
+**Alt zoom:** hold **Left Alt** while recording to smoothly zoom toward the mouse cursor (up to **200%**); release to ease back.
 
 ## Features (v1)
 
 - Always-on-top control pill with camera, mic, and screen/window menus
 - Rounded, borderless camera bubble (draggable; sizes S / M / L)
 - Presentation recording: selected screen or window + camera composited into a rounded corner PiP
-- **Alt zoom:** hold **Left Alt** while recording to smoothly zoom toward the mouse cursor (up to **200%**); release Alt to ease back to normal
+- **Alt zoom:** hold **Left Alt** to zoom on the mouse (up to 200%); release to ease back
 - Microphone with live input meter
 - Screenshots of the selected source
 - Recordings as H.264 MP4
@@ -23,8 +37,8 @@ Floating control bar, rounded camera bubble, screen or window capture with mic, 
 
 ## Requirements
 
-- Node.js 20+
-- Windows 10/11 or macOS 12+
+- **Windows installer:** Windows 10/11
+- **From source:** Node.js 20+, Windows 10/11 or macOS 12+
 - On macOS: grant **Camera**, **Microphone**, and **Screen Recording** in System Settings → Privacy & Security
 
 ## Develop
