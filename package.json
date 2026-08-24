@@ -7,7 +7,8 @@
   "license": "MIT",
   "homepage": "https://github.com/koha-tech-ltd/york",
   "scripts": {
-    "dev": "electron-vite dev -- --remote-debugging-port=9223",
+    "dev": "node scripts/patch-electron-mac-plist.mjs && electron-vite dev -- --remote-debugging-port=9223",
+    "postinstall": "node scripts/patch-electron-mac-plist.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "npm run build && electron-builder",
@@ -70,7 +71,9 @@
       "extendInfo": {
         "NSCameraUsageDescription": "York needs camera access to show your face in recordings.",
         "NSMicrophoneUsageDescription": "York needs microphone access to record your voice.",
-        "NSDesktopCaptureUsageDescription": "York needs screen recording permission to capture your screen or windows."
+        "NSDesktopCaptureUsageDescription": "York needs screen recording permission to capture your screen or windows.",
+        "NSScreenCaptureUsageDescription": "York needs screen recording permission to capture your screen or windows.",
+        "NSAudioCaptureUsageDescription": "York needs audio access to record your microphone."
       }
     },
     "win": {

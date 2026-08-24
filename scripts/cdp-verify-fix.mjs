@@ -43,7 +43,9 @@
     awaitPromise: true,
     returnByValue: true
   })
-  const screen = sources.result.value.find((s) => s.type === 'screen') || sources.result.value[0]
+  const listed = sources.result.value
+  const items = listed.sources || listed
+  const screen = items.find((s) => s.type === 'screen') || items[0]
   await send('Runtime.evaluate', {
     expression: `window.york.setSelectedSource(${JSON.stringify(screen.id)})`,
     awaitPromise: true,

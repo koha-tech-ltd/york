@@ -162,7 +162,7 @@ export function CompositorApp(): JSX.Element {
         const focusX = p.nx * width
         const focusY = p.ny * height
 
-        // Smooth zoom toward 200% while Alt held; ease back on release
+        // Smooth zoom toward 200% while Option (macOS) or Alt (Windows) is held; ease back on release
         p.zoom += (p.zoomTarget - p.zoom) * 0.12
         if (Math.abs(p.zoom - p.zoomTarget) < 0.0015) p.zoom = p.zoomTarget
 

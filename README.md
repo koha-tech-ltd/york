@@ -4,30 +4,34 @@ Open-source Loom-like screen recorder for **Windows** and **macOS**.
 
 Floating control bar, rounded camera bubble, screen or window capture with mic, screenshots, and local MP4 / PNG save.
 
+**200% zoom:** hold **Option (⌥)** on Mac or **Alt** on Windows while recording to zoom toward the mouse; release to ease back.
+
 ## Download
 
 **[Download for Windows](https://github.com/koha-tech-ltd/york/releases/latest/download/York-Setup-0.1.0.exe)** — York Setup 0.1.0 for Windows 10/11.
 
 The installer is unsigned, so SmartScreen may warn on first run. Click **More info**, then **Run anyway**.
 
-macOS: no DMG yet — [build from source](#build), or see [Releases](https://github.com/koha-tech-ltd/york/releases).
+**[Download for macOS](releases/York-0.1.0-arm64.dmg)** — York 0.1.0 DMG for Apple silicon (arm64).
 
-## Feature video
+The DMG is unsigned. Drag York to Applications, then right-click the app and choose **Open** the first time (Gatekeeper may warn). Intel Macs: [build from source](#build).
+
+## 200% zoom — Option on Mac, Alt on Windows
+
+Hold **Option (⌥)** on macOS or **Alt** on Windows while recording. York smoothly zooms up to **200%** toward the mouse cursor; release to ease back.
 
 <video src="assets/preview.mp4" width="720" controls muted loop playsinline>
-  <a href="assets/preview.mp4">Watch the feature video (MP4)</a>
+  <a href="assets/preview.mp4">Watch the 200% zoom feature (MP4)</a>
 </video>
 
-![York feature preview — hold Left Alt to zoom toward the mouse](assets/preview.gif)
-
-**Alt zoom:** hold **Left Alt** while recording to smoothly zoom toward the mouse cursor (up to **200%**); release to ease back.
+![York 200% zoom — hold Option on Mac or Alt on Windows to zoom toward the mouse](assets/preview.gif)
 
 ## Features (v1)
 
 - Always-on-top control pill with camera, mic, and screen/window menus
 - Rounded, borderless camera bubble (draggable; sizes S / M / L)
 - Presentation recording: selected screen or window + camera composited into a rounded corner PiP
-- **Alt zoom:** hold **Left Alt** to zoom on the mouse (up to 200%); release to ease back
+- **200% zoom:** hold **Option (⌥)** (macOS) or **Alt** (Windows) to zoom on the mouse; release to ease back
 - Microphone with live input meter
 - Screenshots of the selected source
 - Recordings as H.264 MP4
@@ -38,6 +42,7 @@ macOS: no DMG yet — [build from source](#build), or see [Releases](https://git
 ## Requirements
 
 - **Windows installer:** Windows 10/11
+- **macOS DMG:** macOS 12+ on Apple silicon (arm64)
 - **From source:** Node.js 20+, Windows 10/11 or macOS 12+
 - On macOS: grant **Camera**, **Microphone**, and **Screen Recording** in System Settings → Privacy & Security
 
@@ -50,7 +55,7 @@ npm run dev
 
 Use the tray icon to show/hide the control bar or quit. During a recording, click the tray icon to stop.
 
-**Tip:** Hold **Left Alt** to zoom on the cursor while you present.
+**Tip:** Hold **Option (⌥)** on Mac or **Alt** on Windows to zoom 200% on the cursor while you present.
 
 ## Build
 

@@ -34,7 +34,9 @@
     awaitPromise: true,
     returnByValue: true
   })
-  const src = state.result.value.selectedSourceId || sources.result.value[0]?.id
+  const listed = sources.result.value
+  const items = listed.sources || listed
+  const src = state.result.value.selectedSourceId || items[0]?.id
   console.log('using source', src)
 
   if (state.result.value.recording) {
