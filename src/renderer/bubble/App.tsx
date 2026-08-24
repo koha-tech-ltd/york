@@ -30,7 +30,18 @@ export function BubbleApp(): JSX.Element {
             : { facingMode: 'user' },
           audio: false
         }
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        let stream: MediaStream | null = null
+        let lastError: Error | null = null
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints)
+            break
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err))
+            await new Promise((r) => setTimeout(r, 250 * (attempt + 1)))
+          }
+        }
+        if (!stream) throw lastError ?? new Error('Could not open camera')
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop())
           return
@@ -41,7 +52,7 @@ export function BubbleApp(): JSX.Element {
           await videoRef.current.play()
         }
       } catch {
-        // permission denied or no device
+        // permission denied or no device — navy circle still visible
       }
     }
 
@@ -115,7 +126,8 @@ export function BubbleApp(): JSX.Element {
           overflow: hidden;
           clip-path: circle(50% at 50% 50%);
           -webkit-clip-path: circle(50% at 50% 50%);
-          background: transparent;
+          background: #0c2340;
+          box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.88);
         }
         video {
           width: 100%;

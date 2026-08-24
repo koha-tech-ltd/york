@@ -20,17 +20,28 @@ import type { WriteStream } from 'fs'
 import type {
   AppState,
   BubbleSize,
-  CaptureSource,
   MediaDeviceInfoLite,
   RecordOptions,
   RecordResult,
   ScreenshotResult,
   YorkSettings
 } from '../shared/types'
-import { BUBBLE_SIZES, BUBBLE_SHADOW_PAD, IPC, bubbleWindowSize } from '../shared/types'
+import type { ListedSources } from '../shared/types'
+import { BUBBLE_SIZES, IPC, bubbleWindowSize } from '../shared/types'
 import { convertWebmToMp4, getFfmpegPath } from './ffmpeg'
 import { ensureSettingsDirs, loadSettings, saveSettings } from './settings'
 import { initPointerHooks, mapPointerNormalized, readPointerSnapshot } from './pointer'
+import {
+  fetchDesktopSources,
+  listCaptureSources,
+  overlayWindowOptions,
+  screenAccessHelp
+} from './captureSources'
+import {
+  openMacScreenPrivacySettings,
+  readScreenAccess,
+  requestMacScreenCaptureAccess
+} from './macScreenAccess'
 
 let barWindow: BrowserWindow | null = null
 let bubbleWindow: BrowserWindow | null = null
@@ -298,7 +309,7 @@ function createBarWindow(): BrowserWindow {
   })
 
   protectWindow(win)
-  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setAlwaysOnTop(true, process.platform === 'darwin' ? 'floating' : 'screen-saver')
   loadRenderer(win, 'bar')
   win.once('ready-to-show', () => win.show())
   return win
@@ -328,6 +339,7 @@ function createBubbleWindow(): BrowserWindow {
     hasShadow: false,
     thickFrame: false,
     show: false,
+    ...overlayWindowOptions(process.platform),
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,
@@ -339,8 +351,9 @@ function createBubbleWindow(): BrowserWindow {
   protectWindow(win)
   win.setBackgroundColor('#00000000')
   win.setHasShadow(false)
-  win.setAlwaysOnTop(true, 'screen-saver')
+  win.setAlwaysOnTop(true, process.platform === 'darwin' ? 'floating' : 'screen-saver')
   loadRenderer(win, 'bubble')
+  win.once('ready-to-show', () => updateBubbleVisibility())
   return win
 }
 
@@ -444,31 +457,37 @@ function updateBubbleVisibility(): void {
   if (!bubbleWindow || bubbleWindow.isDestroyed()) return
   // Never show the live bubble while recording — it becomes a black square in capture
   if (cameraEnabled && !recording && !saving) {
-    bubbleWindow.show()
+    if (process.platform === 'darwin') bubbleWindow.showInactive()
+    else bubbleWindow.show()
+    bubbleWindow.moveTop()
   } else {
     bubbleWindow.hide()
   }
 }
 
-async function listSources(): Promise<CaptureSource[]> {
-  const sources = await desktopCapturer.getSources({
-    types: ['screen', 'window'],
-    thumbnailSize: { width: 320, height: 180 },
-    fetchWindowIcons: false
+async function listSources(): Promise<ListedSources> {
+  const appName = app.isPackaged ? 'York' : 'Electron'
+  let listed = await listCaptureSources(desktopCapturer, {
+    screenAccess: readScreenAccess(),
+    appName
   })
-
-  return sources.map((s) => {
-    const displayIdRaw = s.display_id
-    const displayId =
-      displayIdRaw && displayIdRaw !== '' ? Number.parseInt(displayIdRaw, 10) : undefined
-    return {
-      id: s.id,
-      name: s.name,
-      type: s.id.startsWith('screen:') ? ('screen' as const) : ('window' as const),
-      thumbnailDataUrl: s.thumbnail.toDataURL(),
-      displayId: Number.isFinite(displayId) ? displayId : undefined
+  if (listed.sources.length === 0 && listed.screenAccess === 'granted') {
+    for (let i = 0; i < 3 && listed.sources.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 400))
+      listed = await listCaptureSources(desktopCapturer, {
+        screenAccess: readScreenAccess(),
+        appName
+      })
     }
-  })
+  }
+  if (!selectedSourceId) {
+    const primary = listed.sources.find((s) => s.type === 'screen') ?? listed.sources[0]
+    if (primary) {
+      selectedSourceId = primary.id
+      broadcastState()
+    }
+  }
+  return listed
 }
 
 async function requestMediaPermissions(): Promise<void> {
@@ -486,6 +505,10 @@ function registerIpc(): void {
   ipcMain.handle(IPC.getState, () => getState())
 
   ipcMain.handle(IPC.getSources, async () => listSources())
+
+  ipcMain.handle(IPC.openScreenPrivacySettings, async () => {
+    await openMacScreenPrivacySettings()
+  })
 
   ipcMain.handle(IPC.getMediaDevices, async (): Promise<MediaDeviceInfoLite[]> => {
     // Device enumeration happens in renderer; this is a passthrough placeholder
@@ -686,16 +709,32 @@ function registerIpc(): void {
   })
 
   ipcMain.handle(IPC.takeScreenshot, async (): Promise<ScreenshotResult> => {
-    const sourceId = selectedSourceId
-    if (!sourceId) {
-      throw new Error('Select a screen or window first')
+    if (!selectedSourceId) {
+      await listSources()
+    }
+    const resolvedId = selectedSourceId
+    if (!resolvedId) {
+      const appName = app.isPackaged ? 'York' : 'Electron'
+      throw new Error(
+        screenAccessHelp(readScreenAccess(), { appName }) ?? 'Select a screen or window first'
+      )
     }
 
-    const sources = await desktopCapturer.getSources({
-      types: ['screen', 'window'],
-      thumbnailSize: { width: 3840, height: 2160 }
-    })
-    const source = sources.find((s) => s.id === sourceId)
+    const type = resolvedId.startsWith('screen:') ? ('screen' as const) : ('window' as const)
+    let sources: DesktopCapturerSource[]
+    try {
+      sources = await desktopCapturer.getSources({
+        types: [type],
+        thumbnailSize: { width: 3840, height: 2160 }
+      })
+    } catch {
+      const appName = app.isPackaged ? 'York' : 'Electron'
+      throw new Error(
+        screenAccessHelp(readScreenAccess(), { appName }) ??
+          'Could not capture. Grant Screen Recording, then quit from the tray and reopen York.'
+      )
+    }
+    const source = sources.find((s) => s.id === resolvedId)
     if (!source) {
       throw new Error('Capture source not found')
     }
@@ -813,6 +852,7 @@ app.whenReady().then(async () => {
   initPointerHooks()
   ensureSettingsDirs(loadSettings())
   await requestMediaPermissions()
+  requestMacScreenCaptureAccess()
 
   // Allow camera / mic / display capture from our windows
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
@@ -826,10 +866,7 @@ app.whenReady().then(async () => {
   // Prefer explicit source id from our UI when getDisplayMedia is used
   session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
     try {
-      const sources = await desktopCapturer.getSources({
-        types: ['screen', 'window'],
-        thumbnailSize: { width: 1, height: 1 }
-      })
+      const sources = await fetchDesktopSources(desktopCapturer)
       const preferred =
         (selectedSourceId && sources.find((s) => s.id === selectedSourceId)) ||
         sources.find((s) => s.id.startsWith('screen:')) ||
@@ -856,8 +893,8 @@ app.whenReady().then(async () => {
   })
 
   // Default source: primary screen
-  const sources = await listSources()
-  const primary = sources.find((s) => s.type === 'screen') ?? sources[0]
+  const listed = await listSources()
+  const primary = listed.sources.find((s) => s.type === 'screen') ?? listed.sources[0]
   if (primary) {
     selectedSourceId = primary.id
   }

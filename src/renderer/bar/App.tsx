@@ -19,6 +19,7 @@ export function BarApp(): JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
   const [menu, setMenu] = useState<MenuId>(null)
   const [sources, setSources] = useState<CaptureSource[]>([])
+  const [sourceError, setSourceError] = useState<string | null>(null)
   const [cameras, setCameras] = useState<MediaDeviceInfoLite[]>([])
   const [mics, setMics] = useState<MediaDeviceInfoLite[]>([])
   const [micLevel, setMicLevel] = useState(0)
@@ -53,7 +54,8 @@ export function BarApp(): JSX.Element {
   const refreshDevices = useCallback(async () => {
     try {
       // Prompt permissions so labels populate
-      const probe = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      // Audio-only probe so we do not steal the camera from the bubble
+      const probe = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       probe.getTracks().forEach((t) => t.stop())
     } catch {
       // continue with whatever we can list
@@ -81,8 +83,14 @@ export function BarApp(): JSX.Element {
   }, [])
 
   const refreshSources = useCallback(async () => {
-    const list = await window.york.getSources()
-    setSources(list)
+    try {
+      const result = await window.york.getSources()
+      setSources(result.sources)
+      setSourceError(result.error)
+    } catch (err) {
+      setSources([])
+      setSourceError(err instanceof Error ? err.message : 'Could not list screens or windows')
+    }
   }, [])
 
   useEffect(() => {
@@ -349,7 +357,19 @@ export function BarApp(): JSX.Element {
 
       {menu === 'source' && (
         <MenuPanel onClose={() => setMenu(null)} wide>
+          {sourceError && (
+            <>
+              <MenuHint>{sourceError}</MenuHint>
+              <MenuRow
+                label="Open Screen Recording settings…"
+                onClick={() => void window.york.openScreenPrivacySettings()}
+              />
+            </>
+          )}
           <MenuSection title="Displays" />
+          {sources.filter((s) => s.type === 'screen').length === 0 && !sourceError && (
+            <MenuHint>No displays found</MenuHint>
+          )}
           {sources
             .filter((s) => s.type === 'screen')
             .map((s) => (
@@ -365,6 +385,9 @@ export function BarApp(): JSX.Element {
               />
             ))}
           <MenuSection title="Windows" />
+          {sources.filter((s) => s.type === 'window').length === 0 && !sourceError && (
+            <MenuHint>No windows found</MenuHint>
+          )}
           {sources
             .filter((s) => s.type === 'window')
             .map((s) => (
@@ -506,7 +529,11 @@ function SourceRow(props: {
       className={`source-row ${props.selected ? 'selected' : ''}`}
       onClick={props.onClick}
     >
-      <img src={props.source.thumbnailDataUrl} alt="" />
+      {props.source.thumbnailDataUrl ? (
+        <img src={props.source.thumbnailDataUrl} alt="" />
+      ) : (
+        <span className="source-thumb" />
+      )}
       <span>{props.source.name}</span>
     </button>
   )
@@ -783,7 +810,8 @@ const barCss = `
   cursor: pointer;
 }
 .source-row:hover, .source-row.selected { background: rgba(255,255,255,0.08); }
-.source-row img {
+.source-row img,
+.source-thumb {
   width: 72px;
   height: 42px;
   object-fit: cover;

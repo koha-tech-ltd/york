@@ -1,5 +1,6 @@
 import { screen } from 'electron'
 import { createRequire } from 'module'
+import { isOptionDown } from './optionKey'
 
 const require = createRequire(import.meta.url)
 
@@ -27,8 +28,31 @@ let getWindowRectFn:
 
 const VK_LMENU = 0xa4
 const VK_LBUTTON = 0x01
+const kCGEventSourceStateCombinedSessionState = 0
+
+function initDarwinHooks(): void {
+  getCursorPhysical = null
+  getWindowRectFn = null
+  try {
+    const koffi = require('koffi') as typeof import('koffi')
+    const cg = koffi.load('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+    const CGEventSourceKeyState = cg.func(
+      'uint8_t CGEventSourceKeyState(uint32_t stateID, uint16_t key)'
+    ) as (stateID: number, key: number) => number
+    keyDown = (vKey: number): boolean => {
+      if (vKey !== VK_LMENU && vKey !== 0x12) return false
+      return isOptionDown((code) => !!CGEventSourceKeyState(kCGEventSourceStateCombinedSessionState, code))
+    }
+  } catch {
+    keyDown = () => false
+  }
+}
 
 export function initPointerHooks(): void {
+  if (process.platform === 'darwin') {
+    initDarwinHooks()
+    return
+  }
   if (process.platform !== 'win32') {
     keyDown = () => false
     getCursorPhysical = null

@@ -21,6 +21,19 @@ export interface CaptureSource {
   displayId?: number
 }
 
+export type ScreenAccess =
+  | 'granted'
+  | 'denied'
+  | 'not-determined'
+  | 'restricted'
+  | 'unknown'
+
+export interface ListedSources {
+  sources: CaptureSource[]
+  screenAccess: ScreenAccess
+  error: string | null
+}
+
 export interface MediaDeviceInfoLite {
   deviceId: string
   label: string
@@ -83,6 +96,7 @@ export interface AppState {
 
 export const IPC = {
   getSources: 'york:get-sources',
+  openScreenPrivacySettings: 'york:open-screen-privacy-settings',
   getMediaDevices: 'york:get-media-devices',
   startRecord: 'york:start-record',
   stopRecord: 'york:stop-record',

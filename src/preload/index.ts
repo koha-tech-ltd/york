@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppState,
   BubbleSize,
-  CaptureSource,
+  ListedSources,
   PointerFrameState,
   RecordOptions,
   RecordResult,
@@ -13,7 +13,9 @@ import { IPC } from '../shared/types'
 
 const api = {
   getState: (): Promise<AppState> => ipcRenderer.invoke(IPC.getState),
-  getSources: (): Promise<CaptureSource[]> => ipcRenderer.invoke(IPC.getSources),
+  getSources: (): Promise<ListedSources> => ipcRenderer.invoke(IPC.getSources),
+  openScreenPrivacySettings: (): Promise<void> =>
+    ipcRenderer.invoke(IPC.openScreenPrivacySettings),
   startRecord: (options: RecordOptions): Promise<{ started: true }> =>
     ipcRenderer.invoke(IPC.startRecord, options),
   stopRecord: (): Promise<RecordResult | null> => ipcRenderer.invoke(IPC.stopRecord),
