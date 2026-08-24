@@ -12,7 +12,7 @@ Floating control bar, rounded camera bubble, screen or window capture with mic, 
 
 The installer is unsigned, so SmartScreen may warn on first run. Click **More info**, then **Run anyway**.
 
-**[Download for macOS](releases/York-0.1.0-arm64.dmg)** — York 0.1.0 DMG for Apple silicon (arm64).
+**[Download for macOS](https://github.com/koha-tech-ltd/york/raw/refs/heads/main/releases/York-0.1.0-arm64.dmg?download=)** — York 0.1.0 DMG for Apple silicon (arm64).
 
 The DMG is unsigned. Drag York to Applications, then right-click the app and choose **Open** the first time (Gatekeeper may warn). Intel Macs: [build from source](#build).
 
